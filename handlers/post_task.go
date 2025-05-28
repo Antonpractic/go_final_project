@@ -1,8 +1,7 @@
 package handlers
 
 import (
-	"fmt"
-
+	"encoding/json"
 	"net/http"
 
 	_ "modernc.org/sqlite"
@@ -15,22 +14,36 @@ import (
 func (h *Handler) PostTask(w http.ResponseWriter, r *http.Request) {
 	var task models.Task
 	if err := helpers.DecodeJSON(r.Body, &task); err != nil {
-		http.Error(w, `{"Не удалось расшифровать JSON"}`, http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": "Не удалось расшифровать JSON",
+		})
 		return
 	}
 
 	if err := helpers.CheckTask(&task); err != nil {
-		http.Error(w, fmt.Sprintf(`{"Ошибка": "%s"}`, err.Error()), http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": err.Error(),
+		})
 		return
 	}
 
 	id, err := database.AddTask(h.DB, task)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": err.Error(),
+		})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json, charset=UTF-8")
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusCreated)
-	_, _ = w.Write([]byte(fmt.Sprintf(`{"ID": %d}`, id)))
+	_ = json.NewEncoder(w).Encode(map[string]int64{
+		"id": id,
+	})
 }

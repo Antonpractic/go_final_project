@@ -15,7 +15,7 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 	var tasks []models.Task
 	tasks, err := database.GetAllTasks(h.DB)
 	if err != nil {
-		http.Error(w, `{"Не удалось получить задачи"}`, http.StatusInternalServerError)
+		http.Error(w, `{"error": "Не удалось получить задачи"}`, http.StatusInternalServerError)
 		log.Println("Ошибка при извлечении задач:", err)
 		return
 	}

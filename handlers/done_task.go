@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,58 +16,68 @@ import (
 func (h *Handler) DoneTask(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"ID не найдено"}`))
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "ID не найдено"})
 		return
 	}
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"Неверный формат ID"}`))
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Неверный формат ID"})
 		return
 	}
+
 	taskFromDB, err := database.GetTaskById(h.DB, id)
 	if err != nil {
-		http.Error(w, `{"Ошибка базы данных"}`, http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Ошибка базы данных"})
 		return
 	}
 	if taskFromDB == nil {
-		http.Error(w, `{"Задача не найдена"}`, http.StatusNotFound)
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Задача не найдена"})
 		return
 	}
 
 	task := *taskFromDB
 	if task.Repeat == "" {
-		doneTask, err := database.DoneTask(h.DB, id)
-		if err != nil {
-			http.Error(w, `{"Не получилось удалить задачу"}`, http.StatusBadRequest)
+		if _, err := database.DoneTask(h.DB, id); err != nil {
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "Не получилось удалить задачу"})
 			return
 		}
-		log.Println("Задача выполнена", doneTask)
+		log.Println("Задача выполнена и удалена:", id)
 
-		w.Header().Set("Content-Type", "application/json, charset=UTF-8")
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(fmt.Sprint(`{}`)))
+		_ = json.NewEncoder(w).Encode(map[string]string{})
 		return
 	}
 
 	nextDate, err := helpers.NextDate(time.Now(), task.Date, task.Repeat)
 	if err != nil {
-		http.Error(w, `{"Не удалось рассчитать следующую дату"}`, http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Не удалось рассчитать следующую дату"})
 		return
 	}
 	task.Date = nextDate
 
-	updatedTaskID, err := database.PutTask(h.DB, task)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if _, err := database.PutTask(h.DB, task); err != nil {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Ошибка базы данных"})
 		return
 	}
-	log.Println("Задача обновлена", updatedTaskID)
+	log.Println("Задача обновлена на следующую дату:", task.ID)
 
-	w.Header().Set("Content-Type", "application/json, charset=UTF-8")
-	w.WriteHeader(http.StatusCreated)
-	_, _ = w.Write([]byte(fmt.Sprint(`{}`)))
-
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{})
 }

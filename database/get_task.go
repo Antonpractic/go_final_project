@@ -36,13 +36,13 @@ func GetAllTasks(db *sql.DB) ([]models.Task, error) {
 	for rows.Next() {
 		var task models.Task
 		if err := rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
-			return nil, fmt.Errorf(`{"Не удалось выполнить сканирование: %v"}`, err)
+			return nil, fmt.Errorf(`{"error": "не удалось выполнить сканирование: %v"}`, err)
 		}
 		tasks = append(tasks, task)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf(`{"Ошибка итерации: %v"}`, err)
+		return nil, fmt.Errorf(`{"error": "ошибка итерации: %v"}`, err)
 	}
 
 	return tasks, nil

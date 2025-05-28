@@ -15,28 +15,28 @@ func (h *Handler) GetDateTask(w http.ResponseWriter, r *http.Request) {
 	nowstr := r.URL.Query().Get("now")
 	if nowstr == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"Сейчас дата отсутствует"}`))
+		_, _ = w.Write([]byte(`{"error": "Сейчас дата отсутствует"}`))
 		return
 	}
 
 	now, err := time.Parse(constants.FormatDate, nowstr)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"Неверный формат даты"}`))
+		_, _ = w.Write([]byte(`{"error": "Неверный формат даты"}`))
 		return
 	}
 
 	date := r.URL.Query().Get("date")
 	if date == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"Дата отсутствует"}`))
+		_, _ = w.Write([]byte(`{"error": "Дата отсутствует"}`))
 		return
 	}
 
 	repeat := r.URL.Query().Get("repeat")
 	if repeat == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"Повторное отсутствие"}`))
+		_, _ = w.Write([]byte(`{"error":"Повторное отсутствие"}`))
 		return
 	}
 
