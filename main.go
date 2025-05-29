@@ -17,6 +17,7 @@ func main() {
 	}
 
 	database.InitDB()
+	database.Db.Close()
 
 	server.StartServer()
 }
